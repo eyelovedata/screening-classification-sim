@@ -3,732 +3,705 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Primer: Classification Metrics & ROC Curves</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <title>Diagnostic Classification & Screening Simulator</title>
   <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --tp-color: #22c55e;
+      --fp-color: #f59e0b;
+      --fn-color: #ef4444;
+      --tn-color: #64748b;
+      --accent: #38bdf8;
+      --accent-strong: #0284c7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    .font-mono-num {
-      font-family: 'JetBrains Mono', monospace;
+
+    header {
+      width: 100%;
+      max-width: 1200px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
     }
-    /* Custom Slider Styling */
+
+    .title-group h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .title-group p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-fullscreen {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-fullscreen:hover {
+      background-color: var(--border);
+      border-color: #475569;
+    }
+
+    .main-grid {
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 960px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Controls */
+    .control-block {
+      margin-bottom: 24px;
+    }
+
+    .control-block:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .control-label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .control-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .control-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
     input[type=range] {
-      -webkit-appearance: none;
       width: 100%;
-      background: transparent;
-    }
-    input[type=range]:focus {
+      height: 6px;
+      background: #334155;
+      border-radius: 4px;
       outline: none;
-    }
-    input[type=range]::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 8px;
-      cursor: pointer;
-      background: #e2e8f0;
-      border-radius: 9999px;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      height: 22px;
-      width: 22px;
-      border-radius: 50%;
-      background: #2563eb;
-      cursor: pointer;
       -webkit-appearance: none;
-      margin-top: -7px;
-      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
-      border: 2px solid #ffffff;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 2px var(--bg);
+      cursor: pointer;
       transition: transform 0.1s ease;
     }
+
     input[type=range]::-webkit-slider-thumb:hover {
       transform: scale(1.15);
     }
-    .dot-grid {
-      display: grid;
-      grid-template-columns: repeat(50, 1fr);
-      gap: 2.5px;
+
+    .toggle-group {
+      display: flex;
+      background: #0f172a;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      gap: 4px;
+      margin-top: 6px;
     }
-    .pop-dot {
-      width: 5.5px;
-      height: 5.5px;
+
+    .toggle-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .toggle-btn.active {
+      background: var(--card-bg);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Right pane layout */
+    .dashboard-area {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Key metrics row */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .metrics-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .metric-badge {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .metric-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .metric-val {
+      font-size: 24px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+    }
+
+    .metric-val.highlight {
+      color: var(--accent);
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Visualizer & ROC section */
+    .split-view {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 20px;
+    }
+
+    @media (max-width: 780px) {
+      .split-view {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Dot matrix */
+    .matrix-container {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .dot-matrix {
+      display: grid;
+      grid-template-columns: repeat(40, 1fr);
+      gap: 3px;
+      width: 100%;
+      aspect-ratio: 40 / 25;
+    }
+
+    .dot {
       border-radius: 50%;
-      transition: background-color 0.15s ease;
+      background: var(--tn-color);
+      transition: background 0.1s ease;
+    }
+
+    .dot.tp { background: var(--tp-color); }
+    .dot.fp { background: var(--fp-color); }
+    .dot.fn { background: var(--fn-color); }
+    .dot.tn { background: var(--tn-color); opacity: 0.35; }
+
+    .matrix-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* ROC Curve Canvas */
+    .roc-container {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #rocCanvas {
+      width: 100%;
+      max-width: 250px;
+      aspect-ratio: 1;
+      cursor: crosshair;
+    }
+
+    /* Plain English takeaway banner */
+    .takeaway-banner {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+
+    .takeaway-banner strong {
+      color: var(--accent);
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased p-3 sm:p-6 min-h-screen flex flex-col items-center justify-center">
+<body>
 
-  <!-- Container sized for standard 16:9 projector slide presentation or standalone web app -->
-  <div class="w-full max-w-[1340px] bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden flex flex-col">
-    
-    <!-- Header bar -->
-    <header class="bg-slate-900 text-white px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
-          <i class="fa-solid fa-chart-line text-lg"></i>
+  <header>
+    <div class="title-group">
+      <h1>Diagnostic Classifier & Prevalence Simulator</h1>
+      <p>Interactive demonstration of Sensitivity, Specificity, ROC, and the Base Rate Paradox</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-fullscreen" id="fsBtn" onclick="toggleFullScreen()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+        Full Screen
+      </button>
+    </div>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- Controls Sidebar -->
+    <div class="card">
+      <div class="card-title">Simulation Settings</div>
+
+      <!-- Model AUROC toggle -->
+      <div class="control-block">
+        <div class="control-label">Classifier Discriminative Ability</div>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="btnAurocDecent" onclick="setAuroc('decent')">Decent AUC (0.72)</button>
+          <button class="toggle-btn" id="btnAurocStrong" onclick="setAuroc('strong')">Strong AUC (0.92)</button>
         </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-lg font-bold tracking-tight">Classification Metrics & Prevalence Primer</h1>
-            <span class="text-xs bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded border border-blue-400/30">Educational Lab</span>
-          </div>
-          <p class="text-xs text-slate-400">Discover why high accuracy doesn't guarantee a reliable positive test result.</p>
+        <div class="control-hint">Toggle between a moderate model and a highly discriminative model to see the curve shift.</div>
+      </div>
+
+      <!-- Population Prevalence Slider: Default 5%, Max 60% -->
+      <div class="control-block">
+        <div class="control-header">
+          <span class="control-label">Disease Prevalence</span>
+          <span class="control-val" id="prevVal">5%</span>
+        </div>
+        <input type="range" id="prevSlider" min="0.5" max="60" step="0.5" value="5" oninput="updateSimulation()">
+        <div class="control-hint">The % of the population that genuinely has the condition (default: 5%, max: 60%).</div>
+      </div>
+
+      <!-- Decision Threshold Slider -->
+      <div class="control-block">
+        <div class="control-header">
+          <span class="control-label">Decision Threshold</span>
+          <span class="control-val" id="threshVal">0.50</span>
+        </div>
+        <input type="range" id="threshSlider" min="0.05" max="0.95" step="0.01" value="0.50" oninput="updateSimulation()">
+        <div class="control-hint">Lowering threshold flags more positive cases (higher sensitivity, lower specificity). Drag or click along the ROC curve to adjust.</div>
+      </div>
+    </div>
+
+    <!-- Interactive Dashboard -->
+    <div class="dashboard-area">
+
+      <!-- Metrics Row -->
+      <div class="metrics-row">
+        <div class="metric-badge">
+          <div class="metric-name">Sensitivity (Recall)</div>
+          <div class="metric-val" id="sensVal">--%</div>
+          <div class="metric-sub">Sick detected correctly</div>
+        </div>
+        <div class="metric-badge">
+          <div class="metric-name">Specificity</div>
+          <div class="metric-val" id="specVal">--%</div>
+          <div class="metric-sub">Healthy cleared correctly</div>
+        </div>
+        <div class="metric-badge">
+          <div class="metric-name">Precision (PPV)</div>
+          <div class="metric-val highlight" id="ppvVal">--%</div>
+          <div class="metric-sub">P(Sick | Test Positive)</div>
+        </div>
+        <div class="metric-badge">
+          <div class="metric-name">Negative Pred. Value</div>
+          <div class="metric-val" id="npvVal">--%</div>
+          <div class="metric-sub">P(Healthy | Test Negative)</div>
         </div>
       </div>
 
-      <!-- Model Quality Toggle (AUROC) -->
-      <div class="flex items-center gap-2 bg-slate-800/90 p-1.5 rounded-xl border border-slate-700/80">
-        <span class="text-xs font-semibold text-slate-300 px-2 flex items-center gap-1.5">
-          <i class="fa-solid fa-brain text-slate-400"></i> Classifier:
-        </span>
-        <button id="btn-model-fair" onclick="setModel('fair')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 bg-slate-700 text-slate-300 hover:text-white">
-          <span>Decent (AUC 0.72)</span>
-        </button>
-        <button id="btn-model-great" onclick="setModel('great')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 bg-blue-600 text-white shadow-sm">
-          <i class="fa-solid fa-sparkles text-[10px] text-amber-300"></i>
-          <span>Strong (AUC 0.92)</span>
-        </button>
+      <!-- Visualizer row -->
+      <div class="split-view">
+        <!-- 1,000 Person Matrix -->
+        <div class="matrix-container">
+          <div class="card-title" style="width: 100%; margin-bottom: 10px;">
+            Population Sample (1,000 Individuals)
+          </div>
+          <div class="dot-matrix" id="dotMatrix"></div>
+          <div class="matrix-legend">
+            <div class="legend-item"><span class="legend-dot" style="background: var(--tp-color);"></span> True Pos: <span id="tpCount" style="margin-left: 2px;">0</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--fp-color);"></span> False Pos: <span id="fpCount" style="margin-left: 2px;">0</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--fn-color);"></span> False Neg: <span id="fnCount" style="margin-left: 2px;">0</span></div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--tn-color); opacity: 0.7;"></span> True Neg: <span id="tnCount" style="margin-left: 2px;">0</span></div>
+          </div>
+        </div>
+
+        <!-- ROC Curve interactive canvas -->
+        <div class="roc-container">
+          <div class="card-title" style="width: 100%; margin-bottom: 10px;">
+            ROC Curve
+          </div>
+          <canvas id="rocCanvas" width="500" height="500"></canvas>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: center;">
+            Operating Point: (FPR, TPR)<br>Click curve to reposition threshold
+          </div>
+        </div>
       </div>
-    </header>
 
-    <!-- Main Content Grid -->
-    <main class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50/50">
-
-      <!-- Left Column: Interactive Controls & ROC Canvas (5 cols) -->
-      <section class="lg:col-span-5 flex flex-col gap-5">
-        
-        <!-- Interactive Controls Box -->
-        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col gap-4">
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-blue-600"></i> Simulation Controls
-          </h2>
-
-          <!-- Slider 1: Disease Prevalence -->
-          <div class="space-y-1.5">
-            <div class="flex justify-between items-center text-sm">
-              <label for="prevalence-slider" class="font-bold text-slate-700 flex items-center gap-1.5">
-                <span>1. Population Prevalence</span>
-                <span class="group relative cursor-pointer text-slate-400 hover:text-slate-600">
-                  <i class="fa-regular fa-circle-question text-xs"></i>
-                </span>
-              </label>
-              <div class="flex items-center gap-1">
-                <span id="prev-val-display" class="font-mono-num font-bold text-blue-600 text-base">2.0%</span>
-                <span class="text-xs text-slate-500 font-medium">(<span id="prev-count-display">20</span> / 1,000 sick)</span>
-              </div>
-            </div>
-            
-            <input type="range" id="prevalence-slider" min="0.2" max="30" step="0.2" value="2.0" oninput="onPrevalenceChange(this.value)">
-            
-            <!-- Quick Presets -->
-            <div class="flex items-center justify-between gap-1 pt-1">
-              <span class="text-[11px] text-slate-400 font-medium">Presets:</span>
-              <div class="flex gap-1.5">
-                <button onclick="setPrevalence(0.5)" class="px-2 py-0.5 text-[11px] rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition">Rare (0.5%)</button>
-                <button onclick="setPrevalence(2.0)" class="px-2 py-0.5 text-[11px] rounded bg-blue-50 text-blue-700 font-semibold border border-blue-200 transition">Screening (2%)</button>
-                <button onclick="setPrevalence(10.0)" class="px-2 py-0.5 text-[11px] rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition">Common (10%)</button>
-                <button onclick="setPrevalence(25.0)" class="px-2 py-0.5 text-[11px] rounded bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium transition">High Risk (25%)</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="h-px bg-slate-100 my-0.5"></div>
-
-          <!-- Slider 2: Decision Threshold / ROC Slider -->
-          <div class="space-y-1.5">
-            <div class="flex justify-between items-center text-sm">
-              <label for="threshold-slider" class="font-bold text-slate-700 flex items-center gap-1.5">
-                <span>2. Classifier Decision Threshold</span>
-              </label>
-              <span id="threshold-val-display" class="font-mono-num font-semibold text-slate-700 text-xs px-2 py-0.5 bg-slate-100 rounded">
-                Balanced (50%)
-              </span>
-            </div>
-            
-            <input type="range" id="threshold-slider" min="0" max="100" step="1" value="50" oninput="onThresholdChange(this.value)">
-            
-            <div class="flex justify-between text-[11px] text-slate-500 font-medium">
-              <span>← Lenient (Catches All, More False Alarms)</span>
-              <span>Strict (Fewer False Alarms, Misses Cases) →</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- ROC Curve SVG Interactive Panel -->
-        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col">
-          <div class="flex items-center justify-between mb-3">
-            <div>
-              <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                <span>Receiver Operating Characteristic (ROC)</span>
-              </h3>
-              <p class="text-xs text-slate-500">Shows sensitivity vs. false positive rate across all thresholds.</p>
-            </div>
-            <div class="text-right">
-              <span class="text-xs text-slate-400 block font-medium">Curve Area</span>
-              <span id="auroc-badge" class="font-mono-num text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                AUROC = 0.92
-              </span>
-            </div>
-          </div>
-
-          <!-- ROC Canvas Container -->
-          <div class="relative w-full aspect-square max-h-[290px] bg-slate-900 rounded-lg p-2.5 overflow-hidden flex flex-col justify-between">
-            <svg id="roc-svg" viewBox="0 0 300 300" class="w-full h-full cursor-crosshair" onclick="onRocClick(event)">
-              <!-- Grid lines -->
-              <defs>
-                <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                  <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#334155" stroke-width="0.5"/>
-                </pattern>
-                <linearGradient id="aucGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35"/>
-                  <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02"/>
-                </linearGradient>
-              </defs>
-
-              <rect width="300" height="300" fill="url(#grid)" />
-
-              <!-- Random Chance Diagonal (AUC 0.5) -->
-              <line x1="35" y1="265" x2="265" y2="35" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 4" />
-              <text x="160" y="150" fill="#64748b" font-size="9" transform="rotate(-45 160 150)" text-anchor="middle">Chance Line (AUC = 0.50)</text>
-
-              <!-- Filled Area Under Curve -->
-              <path id="roc-fill-path" d="" fill="url(#aucGrad)" />
-
-              <!-- ROC Curve Path -->
-              <path id="roc-curve-path" d="" fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" />
-
-              <!-- Operating Point Guides -->
-              <line id="guide-x" x1="35" y1="265" x2="35" y2="265" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2 2"/>
-              <line id="guide-y" x1="35" y1="265" x2="265" y2="265" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2 2"/>
-
-              <!-- Interactive Operating Point Marker -->
-              <circle id="roc-dot" cx="35" cy="35" r="7" fill="#f59e0b" stroke="#ffffff" stroke-width="2.5" class="shadow-lg transition-transform"/>
-              
-              <!-- Axes -->
-              <line x1="35" y1="265" x2="265" y2="265" stroke="#cbd5e1" stroke-width="1.5"/>
-              <line x1="35" y1="35" x2="35" y2="265" stroke="#cbd5e1" stroke-width="1.5"/>
-
-              <!-- Axis Labels -->
-              <text x="150" y="292" fill="#94a3b8" font-size="10" text-anchor="middle" font-weight="600">False Positive Rate (1 - Specificity) →</text>
-              <text x="-150" y="16" fill="#94a3b8" font-size="10" text-anchor="middle" font-weight="600" transform="rotate(-90)">Sensitivity (True Positive Rate) →</text>
-              
-              <text x="35" y="278" fill="#64748b" font-size="9" text-anchor="middle">0%</text>
-              <text x="265" y="278" fill="#64748b" font-size="9" text-anchor="middle">100%</text>
-              <text x="24" y="268" fill="#64748b" font-size="9" text-anchor="end">0%</text>
-              <text x="24" y="42" fill="#64748b" font-size="9" text-anchor="end">100%</text>
-            </svg>
-          </div>
-
-          <div class="mt-2.5 flex items-center justify-between text-xs text-slate-500">
-            <span>Operating Point: <strong id="tpr-spec-tag" class="text-slate-800">Sens: 88%, Spec: 92%</strong></span>
-            <span class="text-[11px] text-amber-600 font-medium flex items-center gap-1">
-              <i class="fa-solid fa-hand-pointer text-[10px]"></i> Click curve to jump
-            </span>
-          </div>
-        </div>
-
-      </section>
-
-      <!-- Right Column: Visceral 1,000-Person Population & Metrics (7 cols) -->
-      <section class="lg:col-span-7 flex flex-col gap-5">
-        
-        <!-- Big Number / Hero Metric Callout: The PPV Reality -->
-        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col gap-3">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Core Clinical Metric</span>
-              <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                Positive Predictive Value (PPV / Precision)
-              </h2>
-            </div>
-            <div class="text-right">
-              <div class="flex items-baseline justify-end gap-1">
-                <span id="ppv-stat" class="font-mono-num text-3xl font-extrabold text-blue-600">18.4%</span>
-              </div>
-              <span class="text-[11px] text-slate-500">Chance a positive result is real</span>
-            </div>
-          </div>
-
-          <!-- Dynamic Intuitive Insight Banner -->
-          <div id="insight-banner" class="bg-amber-50 border border-amber-200/80 rounded-lg p-3 text-xs text-amber-900 flex items-start gap-2.5">
-            <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm flex-shrink-0"></i>
-            <div>
-              <strong id="banner-title" class="font-bold">The False Positive Paradox in Action:</strong>
-              <p id="banner-desc" class="mt-0.5 text-amber-800 leading-relaxed">
-                Even with a 92% sensitive test, <strong>82% of all people who test positive are completely healthy!</strong> This occurs because the disease is rare (2.0%), so the vast healthy majority generates more false alarms than the small sick population can generate true positives.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- 1,000 Person Visual Population Grid (Visceral Layperson Visualization) -->
-        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <div>
-              <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-users text-slate-500"></i>
-                Visceral Population View (Cohort of 1,000 People)
-              </h3>
-              <p class="text-xs text-slate-500">Every single dot represents one person tested.</p>
-            </div>
-
-            <!-- Dot Legend -->
-            <div class="flex flex-wrap items-center gap-3 text-xs">
-              <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-sm"></span>
-                <span class="font-medium text-slate-700">True Pos (<span id="count-tp" class="font-bold font-mono-num">18</span>)</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-amber-500 shadow-sm"></span>
-                <span class="font-medium text-slate-700">False Pos (<span id="count-fp" class="font-bold font-mono-num">78</span>)</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-rose-700 shadow-sm"></span>
-                <span class="font-medium text-slate-700">False Neg (<span id="count-fn" class="font-bold font-mono-num">2</span>)</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-slate-200"></span>
-                <span class="font-medium text-slate-500">True Neg (<span id="count-tn" class="font-bold font-mono-num">902</span>)</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Dot Matrix -->
-          <div class="bg-slate-900 rounded-lg p-3.5 overflow-hidden flex items-center justify-center">
-            <div id="population-dots" class="dot-grid w-full"></div>
-          </div>
-
-          <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Notice: Compare the <strong class="text-amber-600">amber dots (false alarms)</strong> to the <strong class="text-emerald-600">green dots (true sick)</strong>.</span>
-            <span class="font-medium text-slate-600">PPV = Green / (Green + Amber)</span>
-          </div>
-        </div>
-
-        <!-- Comparative Bar Breakdown: All Who Test Positive vs All Who Test Negative -->
-        <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col gap-4">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Test Outcome Breakdown (Where do people land?)
-          </h3>
-
-          <!-- Bar 1: Tested Positive -->
-          <div>
-            <div class="flex justify-between text-xs font-medium mb-1.5">
-              <span class="text-slate-700 font-semibold flex items-center gap-1.5">
-                <i class="fa-solid fa-plus-circle text-blue-600"></i> Tested Positive:
-                <strong id="bar-pos-total" class="font-mono-num text-slate-900">96 people</strong>
-              </span>
-              <span class="text-slate-500 font-mono-num">
-                <span class="text-emerald-700 font-bold" id="bar-tp-pct">19% Real Cases</span> vs 
-                <span class="text-amber-700 font-bold" id="bar-fp-pct">81% False Alarms</span>
-              </span>
-            </div>
-            <!-- Stacked bar -->
-            <div class="w-full h-7 bg-slate-100 rounded-lg overflow-hidden flex shadow-inner">
-              <div id="bar-tp" class="bg-emerald-500 h-full transition-all duration-150 flex items-center justify-center text-white text-[11px] font-bold" style="width: 19%;">
-                TP
-              </div>
-              <div id="bar-fp" class="bg-amber-500 h-full transition-all duration-150 flex items-center justify-center text-white text-[11px] font-bold" style="width: 81%;">
-                False Positive (Healthy)
-              </div>
-            </div>
-          </div>
-
-          <!-- Bar 2: Tested Negative -->
-          <div>
-            <div class="flex justify-between text-xs font-medium mb-1.5">
-              <span class="text-slate-700 font-semibold flex items-center gap-1.5">
-                <i class="fa-solid fa-minus-circle text-slate-400"></i> Tested Negative:
-                <strong id="bar-neg-total" class="font-mono-num text-slate-900">904 people</strong>
-              </span>
-              <span class="text-slate-500 font-mono-num">
-                <span class="text-slate-600 font-bold" id="bar-tn-pct">99.8% Cleared</span> vs 
-                <span class="text-rose-600 font-bold" id="bar-fn-pct">0.2% Missed Cases</span>
-              </span>
-            </div>
-            <!-- Stacked bar -->
-            <div class="w-full h-7 bg-slate-100 rounded-lg overflow-hidden flex shadow-inner">
-              <div id="bar-tn" class="bg-slate-300 h-full transition-all duration-150 flex items-center justify-center text-slate-700 text-[11px] font-semibold" style="width: 99.8%;">
-                True Negative
-              </div>
-              <div id="bar-fn" class="bg-rose-700 h-full transition-all duration-150 flex items-center justify-center text-white text-[11px] font-bold" style="width: 0.2%;">
-                FN
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Metrics Row -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-center">
-            <div class="p-2 rounded bg-slate-50 border border-slate-100">
-              <div class="text-[10px] uppercase font-bold text-slate-400">Sensitivity (TPR)</div>
-              <div id="metric-sens" class="font-mono-num text-sm font-bold text-slate-800">89.5%</div>
-              <div class="text-[10px] text-slate-500">Catches sick</div>
-            </div>
-            <div class="p-2 rounded bg-slate-50 border border-slate-100">
-              <div class="text-[10px] uppercase font-bold text-slate-400">Specificity (TNR)</div>
-              <div id="metric-spec" class="font-mono-num text-sm font-bold text-slate-800">92.0%</div>
-              <div class="text-[10px] text-slate-500">Clears healthy</div>
-            </div>
-            <div class="p-2 rounded bg-slate-50 border border-slate-100">
-              <div class="text-[10px] uppercase font-bold text-blue-500">PPV (Precision)</div>
-              <div id="metric-ppv" class="font-mono-num text-sm font-bold text-blue-600">18.4%</div>
-              <div class="text-[10px] text-slate-500">If positive, are sick</div>
-            </div>
-            <div class="p-2 rounded bg-slate-50 border border-slate-100">
-              <div class="text-[10px] uppercase font-bold text-slate-400">NPV</div>
-              <div id="metric-npv" class="font-mono-num text-sm font-bold text-slate-800">99.8%</div>
-              <div class="text-[10px] text-slate-500">If negative, are well</div>
-            </div>
-          </div>
-
-        </div>
-
-      </section>
-
-    </main>
-
-    <!-- Footer Takeaway Bar -->
-    <footer class="bg-white border-t border-slate-200 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span class="font-medium text-slate-700">Takeaway:</span>
-        <span>A test's power (AUROC) stays the same, but real-world reliability (PPV) depends heavily on who you test.</span>
+      <!-- Plain English Dynamic Takeaway -->
+      <div class="takeaway-banner" id="takeawayBanner">
+        Calculating insights...
       </div>
-      <div class="font-mono-num text-[11px] text-slate-400">
-        N = 1,000 population cohort model
-      </div>
-    </footer>
+
+    </div>
 
   </div>
 
   <script>
-    // --- Model Definitions using Gaussian Signal Detection (d-prime) ---
-    // d' = 0.8 gives AUROC ~ 0.71 (Fair)
-    // d' = 2.0 gives AUROC ~ 0.92 (Strong)
-    const MODELS = {
-      fair: {
-        dPrime: 0.8,
-        auroc: 0.72,
-        name: "Decent (AUC 0.72)"
-      },
-      great: {
-        dPrime: 2.0,
-        auroc: 0.92,
-        name: "Strong (AUC 0.92)"
-      }
-    };
+    // State: initialized with Decent AUC (0.72) and 5% prevalence
+    let currentAuroc = 'decent'; // 'decent' (~0.72) or 'strong' (~0.92)
+    const TOTAL_POP = 1000;
 
-    let currentModelKey = 'great';
-    let prevalencePct = 2.0; // Disease prevalence (0.1% - 30%)
-    let thresholdSliderVal = 50; // 0 to 100
+    // Build the 1,000 dots once
+    const matrixElem = document.getElementById('dotMatrix');
+    for (let i = 0; i < TOTAL_POP; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot';
+      matrixElem.appendChild(d);
+    }
+    const dotElements = matrixElem.children;
 
-    // Standard Normal Cumulative Distribution Function (Phi approximation)
-    function cdfNormal(x) {
-      const a1 =  0.254829592;
-      const a2 = -0.284496736;
-      const a3 =  1.421413741;
-      const a4 = -1.453152027;
-      const a5 =  1.061405429;
-      const p  =  0.3275911;
-
+    // Normal Cumulative Distribution Function approximation
+    function normCDF(x) {
+      const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
       const sign = (x < 0) ? -1 : 1;
-      const absX = Math.abs(x) / Math.sqrt(2.0);
-
+      const absX = Math.abs(x) / Math.sqrt(2);
       const t = 1.0 / (1.0 + p * absX);
-      const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
-
-      return 0.5 * (1.0 + sign * y);
+      const erf = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
+      return 0.5 * (1.0 + sign * erf);
     }
 
-    // Convert threshold slider (0..100) to standard score threshold t
-    function getThresholdScore(val, dPrime) {
-      // 0 -> lenient (-2.5), 100 -> strict (+2.5 + d')
-      const minT = -2.2;
-      const maxT = 2.2 + dPrime;
-      return minT + (val / 100) * (maxT - minT);
+    // Gaussian shift model (d-prime): Decent d'=1.15 (~AUC 0.72), Strong d'=2.8 (~AUC 0.92)
+    function getRates(threshold, aurocMode) {
+      const dPrime = (aurocMode === 'strong') ? 2.8 : 1.15;
+      const c = (threshold - 0.5) * 4.0 + (dPrime / 2);
+      const fpr = 1.0 - normCDF(c);
+      const tpr = 1.0 - normCDF(c - dPrime);
+      return {
+        tpr: Math.max(0.001, Math.min(0.999, tpr)),
+        fpr: Math.max(0.001, Math.min(0.999, fpr))
+      };
     }
 
-    // Calculate TPR and FPR from threshold score t
-    function getRates(t, dPrime) {
-      const fpr = 1.0 - cdfNormal(t);
-      const tpr = 1.0 - cdfNormal(t - dPrime);
-      return { fpr: Math.max(0.001, Math.min(0.999, fpr)), tpr: Math.max(0.001, Math.min(0.999, tpr)) };
-    }
-
-    // Initialize 1000 dots once
-    const popDotsContainer = document.getElementById('population-dots');
-    function initDots() {
-      popDotsContainer.innerHTML = '';
-      const fragment = document.createDocumentFragment();
-      for (let i = 0; i < 1000; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'pop-dot bg-slate-700';
-        dot.id = 'dot-' + i;
-        fragment.appendChild(dot);
-      }
-      popDotsContainer.appendChild(fragment);
-    }
-    initDots();
-
-    function setModel(modelKey) {
-      currentModelKey = modelKey;
-      const btnFair = document.getElementById('btn-model-fair');
-      const btnGreat = document.getElementById('btn-model-great');
-
-      if (modelKey === 'fair') {
-        btnFair.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 bg-blue-600 text-white shadow-sm';
-        btnGreat.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 bg-slate-700 text-slate-300 hover:text-white';
-      } else {
-        btnGreat.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 bg-blue-600 text-white shadow-sm';
-        btnFair.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 bg-slate-700 text-slate-300 hover:text-white';
-      }
-      drawRocCurve();
-      updateSimulation();
-    }
-
-    function setPrevalence(val) {
-      document.getElementById('prevalence-slider').value = val;
-      onPrevalenceChange(val);
-    }
-
-    function onPrevalenceChange(val) {
-      prevalencePct = parseFloat(val);
-      updateSimulation();
-    }
-
-    function onThresholdChange(val) {
-      thresholdSliderVal = parseFloat(val);
-      updateSimulation();
-    }
-
-    // Draw the ROC SVG curve based on current model dPrime
-    function drawRocCurve() {
-      const model = MODELS[currentModelKey];
-      const dPrime = model.dPrime;
-      const svgW = 300;
-      const originX = 35;
-      const originY = 265;
-      const plotW = 230;
-      const plotH = 230;
-
-      // Sample points along ROC
-      let pathD = "";
-      let fillD = `M ${originX} ${originY} `;
-
-      const numSamples = 60;
-      for (let i = 0; i <= numSamples; i++) {
-        // threshold from high (fpr=0) to low (fpr=1)
-        const t = (3.5 + dPrime) - (i / numSamples) * (7.0 + dPrime);
-        const fpr = 1.0 - cdfNormal(t);
-        const tpr = 1.0 - cdfNormal(t - dPrime);
-
-        const x = originX + fpr * plotW;
-        const y = originY - tpr * plotH;
-
-        if (i === 0) {
-          pathD += `M ${x.toFixed(1)} ${y.toFixed(1)} `;
-          fillD += `L ${x.toFixed(1)} ${y.toFixed(1)} `;
-        } else {
-          pathD += `L ${x.toFixed(1)} ${y.toFixed(1)} `;
-          fillD += `L ${x.toFixed(1)} ${y.toFixed(1)} `;
-        }
-      }
-
-      fillD += `L ${originX + plotW} ${originY} Z`;
-
-      document.getElementById('roc-curve-path').setAttribute('d', pathD);
-      document.getElementById('roc-fill-path').setAttribute('d', fillD);
-      document.getElementById('auroc-badge').innerText = `AUROC = ${model.auroc.toFixed(2)}`;
-    }
-
-    // Allow clicking directly on the ROC plot to pick an operating point
-    function onRocClick(evt) {
-      const svg = document.getElementById('roc-svg');
-      const rect = svg.getBoundingClientRect();
-      const clickX = ((evt.clientX - rect.left) / rect.width) * 300;
-      const originX = 35;
-      const plotW = 230;
-
-      const targetFpr = Math.max(0.01, Math.min(0.99, (clickX - originX) / plotW));
-      
-      // Binary search the threshold slider value (0..100) that gives this FPR
-      const model = MODELS[currentModelKey];
-      let low = 0, high = 100, bestVal = 50, minDiff = 999;
-      for (let s = 0; s <= 100; s += 1) {
-        const t = getThresholdScore(s, model.dPrime);
-        const fpr = 1.0 - cdfNormal(t);
-        const diff = Math.abs(fpr - targetFpr);
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestVal = s;
-        }
-      }
-
-      document.getElementById('threshold-slider').value = bestVal;
-      thresholdSliderVal = bestVal;
+    function setAuroc(mode) {
+      currentAuroc = mode;
+      document.getElementById('btnAurocDecent').classList.toggle('active', mode === 'decent');
+      document.getElementById('btnAurocStrong').classList.toggle('active', mode === 'strong');
       updateSimulation();
     }
 
     function updateSimulation() {
-      const model = MODELS[currentModelKey];
-      const dPrime = model.dPrime;
-      const t = getThresholdScore(thresholdSliderVal, dPrime);
-      const rates = getRates(t, dPrime);
+      const prev = parseFloat(document.getElementById('prevSlider').value) / 100;
+      const threshold = parseFloat(document.getElementById('threshSlider').value);
 
-      const tpr = rates.tpr; // Sensitivity
-      const fpr = rates.fpr;
-      const tnr = 1.0 - fpr; // Specificity
-      const fnr = 1.0 - tpr;
+      document.getElementById('prevVal').innerText = (prev * 100).toFixed(1) + '%';
+      document.getElementById('threshVal').innerText = threshold.toFixed(2);
 
-      // Prevalence & Cohort Math (N = 1,000)
-      const N = 1000;
-      const sickTotal = Math.max(1, Math.round(N * (prevalencePct / 100)));
-      const healthyTotal = N - sickTotal;
+      const rates = getRates(threshold, currentAuroc);
+      const sensitivity = rates.tpr;
+      const specificity = 1.0 - rates.fpr;
 
-      const tp = Math.round(sickTotal * tpr);
-      const fn = sickTotal - tp;
-      const fp = Math.round(healthyTotal * fpr);
-      const tn = healthyTotal - fp;
+      // Calculate population counts out of 1,000
+      const totalSick = Math.round(TOTAL_POP * prev);
+      const totalHealthy = TOTAL_POP - totalSick;
 
-      const testedPositive = tp + fp;
-      const testedNegative = tn + fn;
+      const tp = Math.round(totalSick * sensitivity);
+      const fn = totalSick - tp;
+      const fp = Math.round(totalHealthy * rates.fpr);
+      const tn = totalHealthy - fp;
 
-      const ppv = (testedPositive > 0) ? (tp / testedPositive) : 0;
-      const npv = (testedNegative > 0) ? (tn / testedNegative) : 0;
+      const totalPositiveTests = tp + fp;
+      const ppv = totalPositiveTests > 0 ? (tp / totalPositiveTests) : 0;
+      const totalNegativeTests = tn + fn;
+      const npv = totalNegativeTests > 0 ? (tn / totalNegativeTests) : 0;
 
-      // Update Text Displays
-      document.getElementById('prev-val-display').innerText = `${prevalencePct.toFixed(1)}%`;
-      document.getElementById('prev-count-display').innerText = `${sickTotal}`;
-      
-      // Threshold text
-      let thresholdLabel = "Balanced";
-      if (thresholdSliderVal < 30) thresholdLabel = "Very Lenient (Catch All)";
-      else if (thresholdSliderVal < 45) thresholdLabel = "Lenient";
-      else if (thresholdSliderVal > 70) thresholdLabel = "Strict (Few Alarms)";
-      else if (thresholdSliderVal > 55) thresholdLabel = "Conservative";
-      document.getElementById('threshold-val-display').innerText = `${thresholdLabel} (${Math.round(thresholdSliderVal)}%)`;
+      // Update Metric Values
+      document.getElementById('sensVal').innerText = Math.round(sensitivity * 100) + '%';
+      document.getElementById('specVal').innerText = Math.round(specificity * 100) + '%';
+      document.getElementById('ppvVal').innerText = Math.round(ppv * 100) + '%';
+      document.getElementById('npvVal').innerText = Math.round(npv * 100) + '%';
 
-      // Update ROC point & guidelines
-      const originX = 35;
-      const originY = 265;
-      const plotW = 230;
-      const plotH = 230;
+      document.getElementById('tpCount').innerText = tp;
+      document.getElementById('fpCount').innerText = fp;
+      document.getElementById('fnCount').innerText = fn;
+      document.getElementById('tnCount').innerText = tn;
 
-      const dotX = originX + fpr * plotW;
-      const dotY = originY - tpr * plotH;
-
-      const rocDot = document.getElementById('roc-dot');
-      rocDot.setAttribute('cx', dotX);
-      rocDot.setAttribute('cy', dotY);
-
-      const guideX = document.getElementById('guide-x');
-      guideX.setAttribute('x1', dotX);
-      guideX.setAttribute('y1', dotY);
-      guideX.setAttribute('x2', dotX);
-      guideX.setAttribute('y2', originY);
-
-      const guideY = document.getElementById('guide-y');
-      guideY.setAttribute('x1', originX);
-      guideY.setAttribute('y1', dotY);
-      guideY.setAttribute('x2', dotX);
-      guideY.setAttribute('y2', dotY);
-
-      document.getElementById('tpr-spec-tag').innerText = `Sens: ${(tpr * 100).toFixed(0)}%, Spec: ${(tnr * 100).toFixed(0)}%`;
-
-      // Update PPV hero metric
-      const ppvPct = (ppv * 100);
-      document.getElementById('ppv-stat').innerText = `${ppvPct.toFixed(1)}%`;
-      if (ppvPct < 25) {
-        document.getElementById('ppv-stat').className = "font-mono-num text-3xl font-extrabold text-amber-600";
-      } else if (ppvPct < 60) {
-        document.getElementById('ppv-stat').className = "font-mono-num text-3xl font-extrabold text-blue-600";
-      } else {
-        document.getElementById('ppv-stat').className = "font-mono-num text-3xl font-extrabold text-emerald-600";
+      // Update 1,000 dot matrix
+      for (let i = 0; i < TOTAL_POP; i++) {
+        let cls = 'dot ';
+        if (i < tp) {
+          cls += 'tp';
+        } else if (i < tp + fp) {
+          cls += 'fp';
+        } else if (i < tp + fp + fn) {
+          cls += 'fn';
+        } else {
+          cls += 'tn';
+        }
+        dotElements[i].className = cls;
       }
 
-      // Update Detailed Metrics
-      document.getElementById('metric-sens').innerText = `${(tpr * 100).toFixed(1)}%`;
-      document.getElementById('metric-spec').innerText = `${(tnr * 100).toFixed(1)}%`;
-      document.getElementById('metric-ppv').innerText = `${ppvPct.toFixed(1)}%`;
-      document.getElementById('metric-npv').innerText = `${(npv * 100).toFixed(1)}%`;
+      // Draw ROC Canvas
+      drawRoc(rates.fpr, rates.tpr);
 
-      // Update Confusion Counts
-      document.getElementById('count-tp').innerText = tp;
-      document.getElementById('count-fp').innerText = fp;
-      document.getElementById('count-fn').innerText = fn;
-      document.getElementById('count-tn').innerText = tn;
-
-      // Update Stacked Bars
-      document.getElementById('bar-pos-total').innerText = `${testedPositive} people`;
-      document.getElementById('bar-neg-total').innerText = `${testedNegative} people`;
-
-      const tpShare = (testedPositive > 0) ? (tp / testedPositive) * 100 : 0;
-      const fpShare = 100 - tpShare;
-      document.getElementById('bar-tp').style.width = `${tpShare}%`;
-      document.getElementById('bar-fp').style.width = `${fpShare}%`;
-      document.getElementById('bar-tp-pct').innerText = `${tpShare.toFixed(0)}% Real Sick`;
-      document.getElementById('bar-fp-pct').innerText = `${fpShare.toFixed(0)}% False Alarms`;
-
-      const tnShare = (testedNegative > 0) ? (tn / testedNegative) * 100 : 0;
-      const fnShare = 100 - tnShare;
-      document.getElementById('bar-tn').style.width = `${tnShare}%`;
-      document.getElementById('bar-fn').style.width = `${fnShare}%`;
-      document.getElementById('bar-tn-pct').innerText = `${tnShare.toFixed(1)}% Healthy`;
-      document.getElementById('bar-fn-pct').innerText = `${fnShare.toFixed(1)}% Missed`;
-
-      // Update 1,000 Dots Visual
-      updateDotColors(tp, fp, fn, tn);
-
-      // Update Educational Banner
-      updateBanner(ppvPct, tpr, tnr, fp, tp, prevalencePct);
+      // Dynamic Takeaway Message
+      const banner = document.getElementById('takeawayBanner');
+      if (prev <= 0.05 && ppv < 0.5) {
+        banner.innerHTML = `<strong>The False Positive Paradox in Action:</strong> Even with a sensitivity of <strong>${Math.round(sensitivity * 100)}%</strong> and specificity of <strong>${Math.round(specificity * 100)}%</strong>, because the disease prevalence is only <strong>${(prev * 100).toFixed(1)}%</strong>, an individual testing positive has only a <strong>${Math.round(ppv * 100)}% chance</strong> of actually having the condition. The ${fp} false alarms outnumber the ${tp} genuine cases!`;
+      } else if (prev >= 0.40) {
+        banner.innerHTML = `<strong>High Prevalence Setting:</strong> In a high-risk cohort with <strong>${(prev * 100).toFixed(1)}%</strong> disease prevalence, positive predictive value rises to <strong>${Math.round(ppv * 100)}%</strong> with the exact same classifier, because true positive cases now far outstrip baseline false alarms.`;
+      } else {
+        banner.innerHTML = `<strong>Operational Balance:</strong> At <strong>${(prev * 100).toFixed(1)}%</strong> prevalence and a threshold of <strong>${threshold.toFixed(2)}</strong>, the test produces <strong>${tp} true positives</strong> against <strong>${fp} false alarms</strong>, resulting in a Precision (PPV) of <strong>${Math.round(ppv * 100)}%</strong>.`;
+      }
     }
 
-    function updateDotColors(tp, fp, fn, tn) {
-      // Order of dots:
-      // First tp: Emerald (True Positive)
-      // Next fp: Amber (False Positive)
-      // Next fn: Rose (False Negative)
-      // Remaining tn: Slate-700 / dark slate
-      const total = 1000;
-      for (let i = 0; i < total; i++) {
-        const dot = document.getElementById('dot-' + i);
-        if (i < tp) {
-          dot.className = 'pop-dot bg-emerald-500 ring-1 ring-emerald-300';
-        } else if (i < tp + fp) {
-          dot.className = 'pop-dot bg-amber-500 ring-1 ring-amber-300';
-        } else if (i < tp + fp + fn) {
-          dot.className = 'pop-dot bg-rose-600 ring-1 ring-rose-400';
-        } else {
-          dot.className = 'pop-dot bg-slate-700/80';
+    function drawRoc(currentFpr, currentTpr) {
+      const canvas = document.getElementById('rocCanvas');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      const pad = 50;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Axes & grid
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pad, h - pad);
+      ctx.lineTo(w - pad, h - pad);
+      ctx.lineTo(w - pad, pad);
+      ctx.stroke();
+
+      // Diagonal chance line (AUC = 0.5)
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = '#475569';
+      ctx.beginPath();
+      ctx.moveTo(pad, h - pad);
+      ctx.lineTo(w - pad, pad);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw active ROC Curve
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      const steps = 60;
+      for (let i = 0; i <= steps; i++) {
+        const th = i / steps;
+        const r = getRates(th, currentAuroc);
+        const x = pad + r.fpr * (w - 2 * pad);
+        const y = (h - pad) - r.tpr * (h - 2 * pad);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Current Operating Point marker
+      const opX = pad + currentFpr * (w - 2 * pad);
+      const opY = (h - pad) - currentTpr * (h - 2 * pad);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(opX, opY, 7.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '16px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('1 - Specificity (FPR)', w / 2, h - 14);
+      ctx.save();
+      ctx.translate(18, h / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Sensitivity (TPR)', 0, 0);
+      ctx.restore();
+    }
+
+    // Allow scrubbing directly along the ROC curve by clicking on it
+    const rocCanvas = document.getElementById('rocCanvas');
+    rocCanvas.addEventListener('click', (e) => {
+      const rect = rocCanvas.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) / rect.width;
+      const targetFpr = Math.max(0.01, Math.min(0.99, clickX));
+      
+      // Binary search closest threshold to clicked FPR
+      let bestTh = 0.5, minDiff = 999;
+      for (let th = 0.05; th <= 0.95; th += 0.01) {
+        const diff = Math.abs(getRates(th, currentAuroc).fpr - targetFpr);
+        if (diff < minDiff) {
+          minDiff = diff;
+          bestTh = th;
         }
       }
-    }
+      document.getElementById('threshSlider').value = bestTh.toFixed(2);
+      updateSimulation();
+    });
 
-    function updateBanner(ppvPct, tpr, tnr, fp, tp, prev) {
-      const banner = document.getElementById('insight-banner');
-      const title = document.getElementById('banner-title');
-      const desc = document.getElementById('banner-desc');
-
-      if (prev <= 3.0 && ppvPct < 40) {
-        banner.className = "bg-amber-50 border border-amber-200/90 rounded-lg p-3 text-xs text-amber-900 flex items-start gap-2.5";
-        title.innerText = "The False Positive Paradox in Action:";
-        desc.innerHTML = `At a low prevalence of <strong>${prev.toFixed(1)}%</strong>, even with a test sensitivity of ${(tpr*100).toFixed(0)}%, <strong>${(100 - ppvPct).toFixed(0)}% of people who test positive are completely healthy (${fp} false alarms vs ${tp} true cases)</strong>. The sheer number of healthy people overwhelms the test!`;
-      } else if (prev >= 15.0) {
-        banner.className = "bg-blue-50 border border-blue-200/90 rounded-lg p-3 text-xs text-blue-900 flex items-start gap-2.5";
-        title.innerText = "High-Prevalence Target Population:";
-        desc.innerHTML = `Because the condition is common (<strong>${prev.toFixed(1)}%</strong>), the background noise is low. Positive results are now far more trustworthy: <strong>${ppvPct.toFixed(0)}%</strong> of positive test results represent real cases!`;
+    // Native Fullscreen API Toggle
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Fullscreen error: ${err.message}`);
+        });
+        document.getElementById('fsBtn').innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+          </svg>
+          Exit Full Screen
+        `;
       } else {
-        banner.className = "bg-slate-100 border border-slate-200 rounded-lg p-3 text-xs text-slate-800 flex items-start gap-2.5";
-        title.innerText = "Threshold Trade-off:";
-        desc.innerHTML = `Tuning the decision threshold shifts the balance between catching cases (Sensitivity: <strong>${(tpr*100).toFixed(0)}%</strong>) and avoiding false alarms (Specificity: <strong>${(tnr*100).toFixed(0)}%</strong>). Notice how the point rides along the ROC curve!`;
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+        document.getElementById('fsBtn').innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+          Full Screen
+        `;
       }
     }
 
-    // Initial load
-    drawRocCurve();
+    // Initialize
     updateSimulation();
   </script>
 </body>
